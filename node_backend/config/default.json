@@ -1,0 +1,6 @@
+{"databases":
+{
+  "User_Info":  "mongodb+srv://ljogz:bGl7AhkvCWdXWWPZ@cluster0.i0fm5wf.mongodb.net/User_Info?retryWrites=true&w=majority" 
+},
+"collections":{"login":"login"}
+}
