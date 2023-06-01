@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const argon2 = require("argon2");
+const c = require("config");
 
 const app = express();
 const port = 4000;
@@ -161,11 +162,14 @@ app.get("/exercises", async (req, res) => {
     }
   });
 });
+// implement later potentially or adjust frontend
+app.get("specificExercise", async (req, res) => {});
 
 app.put("/newExercise", async (req, res) => {
   const body = req.body;
 
   var name;
+  console.log(req);
 
   userModel.updateOne(
     { _id: body.id },
@@ -178,21 +182,40 @@ app.put("/newExercise", async (req, res) => {
       } else {
         console.log(`added new  exercise`);
         console.log(doc);
-        smModel.updateOne(
-          { user: body.user },
-          { $push: { exercises: body.exercise } },
-          function (err, doc) {
-            if (err) {
-              console.log(`unexpected error`);
-              res.status(400).send("error");
-              return;
-            } else {
-              console.log(`added new post `);
-              console.log(doc);
-              res.status(200).send("worked");
-            }
+        // res.status(200).send("worked");
+        console.log("user");
+
+        userModel.findById(body.id, (err, data) => {
+          console.log(data);
+          if (err) {
+            res.status(400).send(err);
+            return console.log("error");
           }
-        );
+          if (data == null) {
+            res.status(400).send("unknown why response is null");
+            return console.log("response null");
+          } else {
+            console.log(`exercises in ${data.exercises}`);
+
+            res.status(200).send(data.exercises[data.exercises.length - 1]);
+          }
+        });
+        // smModel.updateOne(
+        //   { user: body.user },
+        //   { $push: { exercises: body.exercise } },
+        //   function (err, doc) {
+        //     if (err) {
+        //       console.log(`unexpected error`);
+        //       res.status(400).send("error");
+        //       return;
+        //     } else {
+        //       console.log(`added new post `);
+        //       console.log(doc);
+        //       console.log(body.exercise);
+        //       res.status(200).send("worked");
+        //     }
+        //   }
+        // );
       }
     }
   );
@@ -207,6 +230,7 @@ app.put("/removeExercise", async (req, res) => {
     { $pull: { exercises: exercise } },
     function (err, doc) {
       if (err) {
+        console.log(err);
         console.log(`unexpected error`);
         res.status(400).send("error");
         return;
@@ -216,6 +240,27 @@ app.put("/removeExercise", async (req, res) => {
         res.status(400).send("error not deleted");
       } else {
         console.log(`removed ${doc} exercise`);
+        console.log(doc);
+        res.status(200).send("worked");
+      }
+    }
+  );
+});
+
+app.put("/updateExercise", async (req, res) => {
+  const id = req.body.id;
+  const exercise = req.body.exercise;
+
+  userModel.updateOne(
+    { _id: id },
+    { $set: { exercises: exercise } },
+    function (err, doc) {
+      if (err) {
+        console.log(`unexpected error`);
+        res.status(400).send("error");
+        return;
+      } else {
+        console.log(`updated ${doc} exercise`);
         console.log(doc);
         res.status(200).send("worked");
       }
