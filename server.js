@@ -4,6 +4,14 @@ const cors = require("cors");
 const argon2 = require("argon2");
 const c = require("config");
 
+const { Configuration, OpenAIApi } = require("openai");
+
+// Did not want to give OpenAI API key due to pricing
+const configuration = new Configuration({
+  apiKey: "INSERT KEY HERE",
+});
+const openai = new OpenAIApi(configuration);
+
 const app = express();
 const port = 4000;
 const corsOrigin = {
@@ -276,3 +284,20 @@ app.delete("/deleteProfile", async (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+app.get("/idea", async (req, res) => {
+  // const question = req.question;
+  console.log(req.query);
+
+  const completion = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages: [{ role: "user", content: req.query.req }],
+  });
+
+  console.log(completion);
+  console.log(completion.data.choices[0].message);
+
+  res.status(200).send(completion.data.choices[0].message);
+});
+
+module.exports = app;
