@@ -8,14 +8,14 @@ const { Configuration, OpenAIApi } = require("openai");
 
 // Did not want to give OpenAI API key due to pricing
 const configuration = new Configuration({
-  apiKey: "INSERT KEY HERE",
+  apiKey: "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",
 });
 const openai = new OpenAIApi(configuration);
 
 const app = express();
 const port = 4000;
 const corsOrigin = {
-  origin: "http://localhost:3000", //or whatever port your frontend is using
+  origin: "http://localhost:3000",
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -258,22 +258,63 @@ app.put("/removeExercise", async (req, res) => {
 app.put("/updateExercise", async (req, res) => {
   const id = req.body.id;
   const exercise = req.body.exercise;
+  // console.log(exercise._id);
 
-  userModel.updateOne(
-    { _id: id },
-    { $set: { exercises: exercise } },
-    function (err, doc) {
-      if (err) {
-        console.log(`unexpected error`);
-        res.status(400).send("error");
-        return;
-      } else {
-        console.log(`updated ${doc} exercise`);
-        console.log(doc);
-        res.status(200).send("worked");
+  // userModel.updateOne(
+  //   { _id: id },
+  //   { $set: { exercises: exercise } },
+  //   function (err, doc) {
+  //     if (err) {
+  //       console.log(`unexpected error`);
+  //       res.status(400).send("error");
+  //       return;
+  //     } else {
+  //       console.log(`updated ${doc} exercise`);
+  //       console.log(doc);
+  //       res.status(200).send("worked");
+  //     }
+  //   }
+  // );
+
+  userModel
+    .findById(id)
+    .then((doc) => {
+      // console.log(doc);
+      items = doc.exercises;
+      console.log(items);
+      for (let index in items) {
+        let item = items[index];
+        if (item._id.toString() === exercise._id) {
+          console.log("worked");
+          item.exercise = exercise.exercise;
+          item.weight = exercise.weight;
+          item.sets = exercise.sets;
+          item.reps = exercise.reps;
+          item.date = exercise.date;
+        }
       }
-    }
-  );
+
+      // for (let index in doc.exercises) {
+      //   let item = doc.exercises[index];
+      //   console.log(item._id.toString());
+      //   console.log(typeof exercise._id);
+
+      //   if (item._id.toString() === exercise._id) {
+      //     item = exercise;
+      //     console.log("exercise");
+      //     // console.log(exercise);
+      //   }
+      // }
+
+      doc.save();
+      console.log(doc);
+      res.status(201).send("worked");
+    })
+    .catch((err) => {
+      console.log("Error didn't work");
+      console.log(err);
+      res.status(400).send(err);
+    });
 });
 
 app.delete("/deleteProfile", async (req, res) => {
