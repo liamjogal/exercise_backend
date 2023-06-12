@@ -1,16 +1,9 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const argon2 = require("argon2");
-const c = require("config");
-
-const { Configuration, OpenAIApi } = require("openai");
-
-// Did not want to give OpenAI API key due to pricing
-const configuration = new Configuration({
-  apiKey: "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",
-});
-const openai = new OpenAIApi(configuration);
+var chatbotRouter = require("./routes/chatbot");
+var exercisesRouter = require("./routes/Exercises");
+const userModel = require("./dbconfig/userModel");
 
 const app = express();
 const port = 4000;
@@ -21,47 +14,6 @@ const corsOrigin = {
 };
 app.use(cors(corsOrigin));
 app.use(express.json());
-
-mongoose.set("strictQuery", true);
-
-const user_uri =
-  "mongodb+srv://ljogz:bGl7AhkvCWdXWWPZ@cluster0.i0fm5wf.mongodb.net/User_Info?retryWrites=true&w=majority";
-mongoose.connect(user_uri, console.log("Mongodb User_Info connected :)"));
-
-const db = mongoose.connection;
-
-const exerciseSchema = mongoose.Schema({
-  date: Date,
-  exercise: String,
-  weight: Number,
-  reps: Number,
-  sets: Number,
-});
-
-// Shchema and model for intial registration
-
-const smSchema = mongoose.Schema({
-  user: String,
-  followers: [String],
-  following: [String],
-  privacy: String,
-  bio: String,
-  exercise_type: String,
-  exercises: [exerciseSchema],
-  posts: [String],
-});
-
-const smModel = mongoose.model("smSchema", smSchema, "sminfo");
-
-const userSchema = mongoose.Schema({
-  username: String,
-  password: String,
-  privacy: String,
-  exercises: [exerciseSchema],
-  smInfo: smSchema,
-});
-
-const userModel = mongoose.model("userModel", userSchema, "logins");
 
 // function to register a user
 function register(name, passw, privStat) {
@@ -150,172 +102,8 @@ app.post("/login", async (req, res) => {
     });
 });
 
-app.get("/exercises", async (req, res) => {
-  //console.log(req);
-  const query = req.query;
-  console.log(query);
-  userModel.findById(query.id, (err, data) => {
-    console.log(data);
-    if (err) {
-      res.status(400).send(err);
-      return console.log("error");
-    }
-    if (data == null) {
-      res.status(400).send("unknown why response is null");
-      return console.log("response null");
-    } else {
-      console.log(`exercises in ${data.exercises}`);
-
-      res.status(200).send(data.exercises);
-    }
-  });
-});
-// implement later potentially or adjust frontend
-app.get("specificExercise", async (req, res) => {});
-
-app.put("/newExercise", async (req, res) => {
-  const body = req.body;
-
-  var name;
-  console.log(req);
-
-  userModel.updateOne(
-    { _id: body.id },
-    { $push: { exercises: body.exercise } },
-    function (err, doc) {
-      if (err) {
-        console.log(`unexpected error`);
-        res.status(400).send("error");
-        return;
-      } else {
-        console.log(`added new  exercise`);
-        console.log(doc);
-        // res.status(200).send("worked");
-        console.log("user");
-
-        userModel.findById(body.id, (err, data) => {
-          console.log(data);
-          if (err) {
-            res.status(400).send(err);
-            return console.log("error");
-          }
-          if (data == null) {
-            res.status(400).send("unknown why response is null");
-            return console.log("response null");
-          } else {
-            console.log(`exercises in ${data.exercises}`);
-
-            res.status(200).send(data.exercises[data.exercises.length - 1]);
-          }
-        });
-        // smModel.updateOne(
-        //   { user: body.user },
-        //   { $push: { exercises: body.exercise } },
-        //   function (err, doc) {
-        //     if (err) {
-        //       console.log(`unexpected error`);
-        //       res.status(400).send("error");
-        //       return;
-        //     } else {
-        //       console.log(`added new post `);
-        //       console.log(doc);
-        //       console.log(body.exercise);
-        //       res.status(200).send("worked");
-        //     }
-        //   }
-        // );
-      }
-    }
-  );
-});
-
-app.put("/removeExercise", async (req, res) => {
-  const id = req.body.id;
-  const exercise = req.body.exercise;
-
-  userModel.updateOne(
-    { _id: id },
-    { $pull: { exercises: exercise } },
-    function (err, doc) {
-      if (err) {
-        console.log(err);
-        console.log(`unexpected error`);
-        res.status(400).send("error");
-        return;
-      }
-      if (doc.modifiedCount != 1) {
-        console.log("not deleted");
-        res.status(400).send("error not deleted");
-      } else {
-        console.log(`removed ${doc} exercise`);
-        console.log(doc);
-        res.status(200).send("worked");
-      }
-    }
-  );
-});
-
-app.put("/updateExercise", async (req, res) => {
-  const id = req.body.id;
-  const exercise = req.body.exercise;
-  // console.log(exercise._id);
-
-  // userModel.updateOne(
-  //   { _id: id },
-  //   { $set: { exercises: exercise } },
-  //   function (err, doc) {
-  //     if (err) {
-  //       console.log(`unexpected error`);
-  //       res.status(400).send("error");
-  //       return;
-  //     } else {
-  //       console.log(`updated ${doc} exercise`);
-  //       console.log(doc);
-  //       res.status(200).send("worked");
-  //     }
-  //   }
-  // );
-
-  userModel
-    .findById(id)
-    .then((doc) => {
-      // console.log(doc);
-      items = doc.exercises;
-      console.log(items);
-      for (let index in items) {
-        let item = items[index];
-        if (item._id.toString() === exercise._id) {
-          console.log("worked");
-          item.exercise = exercise.exercise;
-          item.weight = exercise.weight;
-          item.sets = exercise.sets;
-          item.reps = exercise.reps;
-          item.date = exercise.date;
-        }
-      }
-
-      // for (let index in doc.exercises) {
-      //   let item = doc.exercises[index];
-      //   console.log(item._id.toString());
-      //   console.log(typeof exercise._id);
-
-      //   if (item._id.toString() === exercise._id) {
-      //     item = exercise;
-      //     console.log("exercise");
-      //     // console.log(exercise);
-      //   }
-      // }
-
-      doc.save();
-      console.log(doc);
-      res.status(201).send("worked");
-    })
-    .catch((err) => {
-      console.log("Error didn't work");
-      console.log(err);
-      res.status(400).send(err);
-    });
-});
+app.use("/exercises", exercisesRouter);
+app.use("/idea", chatbotRouter);
 
 app.delete("/deleteProfile", async (req, res) => {
   const id = req.query.id;
@@ -324,21 +112,6 @@ app.delete("/deleteProfile", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
-});
-
-app.get("/idea", async (req, res) => {
-  // const question = req.question;
-  console.log(req.query);
-
-  const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
-    messages: [{ role: "user", content: req.query.req }],
-  });
-
-  console.log(completion);
-  console.log(completion.data.choices[0].message);
-
-  res.status(200).send(completion.data.choices[0].message);
 });
 
 module.exports = app;
